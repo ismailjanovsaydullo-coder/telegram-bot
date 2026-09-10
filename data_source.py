@@ -13,9 +13,16 @@ import time
 from dataclasses import dataclass, asdict
 
 import pandas as pd
+import requests
 import yfinance as yf
 
 from config import CACHE_DB, CACHE_TTL_HOURS
+
+# ---------------------------------------------------------------- session sozlamasi (User-Agent)
+_session = requests.Session()
+_session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+})
 
 
 # ---------------------------------------------------------------- ma'lumot idishi
@@ -118,7 +125,7 @@ def fetch_fundamentals(ticker: str, force: bool = False) -> Fundamentals:
         if cached:
             return cached
 
-    t = yf.Ticker(ticker)
+    t = yf.Ticker(ticker, session=_session)
     try:
         info = t.info or {}
     except Exception as exc:
@@ -177,7 +184,7 @@ def fetch_fundamentals(ticker: str, force: bool = False) -> Fundamentals:
 
 def fetch_quote(ticker: str) -> Quote:
     """Real vaqtdagi narx va bozor kapitalizatsiyasi."""
-    t = yf.Ticker(ticker.upper().strip())
+    t = yf.Ticker(ticker.upper().strip(), session=_session)
     price = market_cap = None
     try:
         fi = t.fast_info
@@ -198,7 +205,7 @@ def fetch_quote(ticker: str) -> Quote:
 def ticker_exists(ticker: str) -> bool:
     """Tiker haqiqiyligini tez tekshiradi (OCR natijasini filtrlash uchun)."""
     try:
-        fi = yf.Ticker(ticker).fast_info
+        fi = yf.Ticker(ticker, session=_session).fast_info
         mc = fi.get("market_cap") if hasattr(fi, "get") else fi.market_cap
         return mc is not None
     except Exception:
